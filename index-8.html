@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Trabajos y Ventas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            min-height: 100vh;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #64748b;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .metric-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .metric-icon.blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .metric-icon.green { background: linear-gradient(135deg, #10b981, #059669); }
+        .metric-icon.purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .metric-icon.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+        .metric-progress {
+            text-align: right;
+        }
+
+        .metric-progress .percentage {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .metric-progress .label {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .metric-content h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .metric-meta {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.blue { background: linear-gradient(90deg, #3b82f6, #1d4ed8); }
+        .progress-fill.green { background: linear-gradient(90deg, #10b981, #059669); }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+
+        .chart-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .chart-title::before {
+            content: "📊";
+            margin-right: 0.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .table-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+        }
+
+        .table-title::before {
+            content: "👥";
+            margin-right: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        .vendor-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .vendor-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+        }
+
+        .lines-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .line-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .line-card:hover {
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        .line-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .line-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-left: auto;
+        }
+
+        .line-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+        }
+
+        .line-stats span:first-child {
+            color: #64748b;
+        }
+
+        .line-stats span:last-child {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-card {
+                min-width: unset;
+            }
+
+            table {
+                font-size: 0.875rem;
+            }
+
+            th, td {
+                padding: 0.75rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Dashboard de Trabajos</h1>
+            <p>Seguimiento de trabajos, ventas y rendimiento por vendedor</p>
+        </div>
+
+        <!-- Métricas principales -->
+        <div class="metrics-grid" id="metricsGrid">
+            <!-- Las métricas se generarán con JavaScript -->
+        </div>
+
+        <!-- Gráficos principales -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">📅 Progreso Mensual</div>
+                <div class="chart-container">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">🎯 Trabajos por Línea</div>
+                <div class="chart-container">
+                    <canvas id="lineChart"></canvas>
+                </div>
+                <div class="legend-grid" id="lineLegend">
+                    <!-- La leyenda se generará con JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Rendimiento por vendedores -->
+        <div class="table-container">
+            <div class="table-header">
+                <div class="table-title">👥 Rendimiento por Vendedores</div>
+            </div>
+            <div class="chart-container" style="margin: 1.5rem; height: 300px;">
+                <canvas id="vendorsChart"></canvas>
+            </div>
+            <div style="overflow-x: auto;">
+                <table id="vendorsTable">
+                    <thead>
+                        <tr>
+                            <th>Vendedor</th>
+                            <th>Trabajos</th>
+                            <th>Hectáreas</th>
+                            <th>Ventas</th>
+                            <th>Promedio/Trabajo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vendorsTableBody">
+                        <!-- Los datos se generarán con JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Resumen por líneas -->
+        <div class="table-container">
+            <div class="table-header">
+                <div class="table-title">💰 Resumen por Líneas de Trabajo</div>
+            </div>
+            <div class="lines-grid" id="linesGrid" style="padding: 1.5rem;">
+                <!-- Las líneas se generarán con JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos de ejemplo
+        const data = {
+            trabajosTotales: 847,
+            metaTotal: 1000,
+            hectareasTotales: 2340,
+            metaHectareas: 2800,
+            vendedores: [
+                { nombre: 'Juan Pérez', trabajos: 145, hectareas: 380, ventas: 28500 },
+                { nombre: 'María García', trabajos: 132, hectareas: 345, ventas: 25800 },
+                { nombre: 'Carlos López', trabajos: 128, hectareas: 320, ventas: 24200 },
+                { nombre: 'Ana Martínez', trabajos: 115, hectareas: 295, ventas: 22100 },
+                { nombre: 'Luis Rodríguez', trabajos: 108, hectareas: 285, ventas: 21400 },
+                { nombre: 'Sofia Torres', trabajos: 95, hectareas: 245, ventas: 18900 },
+                { nombre: 'Pedro Sánchez', trabajos: 82, hectareas: 215, ventas: 16800 },
+                { nombre: 'Laura Morales', trabajos: 42, hectareas: 255, ventas: 15300 }
+            ],
+            lineasTrabajo: [
+                { linea: 'Fertilizantes', trabajos: 234, porcentaje: 27.6, color: '#10B981' },
+                { linea: 'Pesticidas', trabajos: 189, porcentaje: 22.3, color: '#3B82F6' },
+                { linea: 'Herbicidas', trabajos: 156, porcentaje: 18.4, color: '#8B5CF6' },
+                { linea: 'Fungicidas', trabajos: 134, porcentaje: 15.8, color: '#F59E0B' },
+                { linea: 'Semillas', trabajos: 89, porcentaje: 10.5, color: '#EF4444' },
+                { linea: 'Otros', trabajos: 45, porcentaje: 5.4, color: '#6B7280' }
+            ],
+            trabajosPorMes: [
+                { mes: 'Ene', trabajos: 65, hectareas: 180 },
+                { mes: 'Feb', trabajos: 78, hectareas: 210 },
+                { mes: 'Mar', trabajos: 92, hectareas: 245 },
+                { mes: 'Abr', trabajos: 105, hectareas: 285 },
+                { mes: 'May', trabajos: 118, hectareas: 315 },
+                { mes: 'Jun', trabajos: 134, hectareas: 350 },
+                { mes: 'Jul', trabajos: 145, hectareas: 385 },
+                { mes: 'Ago', trabajos: 110, hectareas: 370 }
+            ]
+        };
+
+        // Generar métricas
+        function generateMetrics() {
+            const metricsGrid = document.getElementById('metricsGrid');
+            const porcentajeMeta = (data.trabajosTotales / data.metaTotal) * 100;
+            const porcentajeMetaHectareas = (data.hectareasTotales / data.metaHectareas) * 100;
+            
+            const metrics = [
+                {
+                    title: 'Trabajos Totales',
+                    value: data.trabajosTotales.toLocaleString(),
+                    meta: data.metaTotal.toLocaleString(),
+                    percentage: porcentajeMeta,
+                    icon: '🏆',
+                    iconClass: 'blue',
+                    progressClass: 'blue'
+                },
+                {
+                    title: 'Hectáreas Trabajadas',
+                    value: data.hectareasTotales.toLocaleString() + ' ha',
+                    meta: data.metaHectareas.toLocaleString() + ' ha',
+                    percentage: porcentajeMetaHectareas,
+                    icon: '📍',
+                    iconClass: 'green',
+                    progressClass: 'green'
+                },
+                {
+                    title: 'Vendedores Activos',
+                    value: data.vendedores.length,
+                    icon: '👥',
+                    iconClass: 'purple'
+                },
+                {
+                    title: 'Promedio por Trabajo',
+                    value: Math.round(data.hectareasTotales / data.trabajosTotales * 10) / 10 + ' ha',
+                    icon: '📈',
+                    iconClass: 'orange'
+                }
+            ];
+
+            metricsGrid.innerHTML = metrics.map(metric => `
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div class="metric-icon ${metric.iconClass}">${metric.icon}</div>
+                        ${metric.percentage ? `
+                            <div class="metric-progress">
+                                <div class="percentage">${metric.percentage.toFixed(1)}%</div>
+                                <div class="label">Progreso</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="metric-content">
+                        <h3>${metric.title}</h3>
+                        <div class="metric-value">${metric.value}</div>
+                        ${metric.meta ? `
+                            <div class="metric-meta">Meta: ${metric.meta}</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${metric.progressClass}" style="width: ${Math.min(metric.percentage, 100)}%"></div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Generar tabla de vendedores
+        function generateVendorsTable() {
+            const tbody = document.getElementById('vendorsTableBody');
+            const colors = ['linear-gradient(135deg, #fbbf24, #f59e0b)', 'linear-gradient(135deg, #60a5fa, #3b82f6)', 'linear-gradient(135deg, #9ca3af, #6b7280)'];
+            
+            tbody.innerHTML = data.vendedores.map((vendedor, index) => {
+                const iniciales = vendedor.nombre.split(' ').map(n => n[0]).join('');
+                const colorIndex = index < 3 ? 0 : index < 6 ? 1 : 2;
+                const promedio = (vendedor.hectareas / vendedor.trabajos).toFixed(1);
+                
+                return `
+                    <tr>
+                        <td>
+                            <div class="vendor-info">
+                                <div class="vendor-avatar" style="background: ${colors[colorIndex]}">${iniciales}</div>
+                                ${vendedor.nombre}
+                            </div>
+                        </td>
+                        <td><strong>${vendedor.trabajos}</strong></td>
+                        <td>${vendedor.hectareas} ha</td>
+                        <td>$${vendedor.ventas.toLocaleString()}</td>
+                        <td>${promedio} ha</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Generar líneas de trabajo
+        function generateLines() {
+            const linesGrid = document.getElementById('linesGrid');
+            linesGrid.innerHTML = data.lineasTrabajo.map(linea => `
+                <div class="line-card">
+                    <div class="line-header">
+                        <h4 style="font-weight: 600; color: #1e293b;">${linea.linea}</h4>
+                        <div class="line-color" style="background: ${linea.color}"></div>
+                    </div>
+                    <div class="line-stats">
+                        <span>Trabajos:</span>
+                        <span>${linea.trabajos}</span>
+                    </div>
+                    <div class="line-stats">
+                        <span>Porcentaje:</span>
+                        <span>${linea.porcentaje}%</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Generar leyenda para gráfico de líneas
+        function generateLineLegend() {
+            const legend = document.getElementById('lineLegend');
+            legend.innerHTML = data.lineasTrabajo.map(linea => `
+                <div class="legend-item">
+                    <div class="legend-color" style="background: ${linea.color}"></div>
+                    ${linea.linea}
+                </div>
+            `).join('');
+        }
+
+        // Crear gráficos
+        function createCharts() {
+            // Gráfico mensual
+            const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+            new Chart(monthlyCtx, {
+                type: 'line',
+                data: {
+                    labels: data.trabajosPorMes.map(d => d.mes),
+                    datasets: [{
+                        label: 'Trabajos',
+                        data: data.trabajosPorMes.map(d => d.trabajos),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Hectáreas',
+                        data: data.trabajosPorMes.map(d => d.hectareas),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#e5e7eb'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#e5e7eb'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de líneas (dona)
+            const lineCtx = document.getElementById('lineChart').getContext('2d');
+            new Chart(lineCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.lineasTrabajo.map(d => d.linea),
+                    datasets: [{
+                        data: data.lineasTrabajo.map(d => d.trabajos),
+                        backgroundColor: data.lineasTrabajo.map(d => d.color),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de vendedores
+            const vendorsCtx = document.getElementById('vendorsChart').getContext('2d');
+            new Chart(vendorsCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.vendedores.map(v => v.nombre.split(' ')[0]),
+                    datasets: [{
+                        label: 'Trabajos',
+                        data: data.vendedores.map(v => v.trabajos),
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4
+                    }, {
+                        label: 'Hectáreas',
+                        data: data.vendedores.map(v => v.hectareas),
+                        backgroundColor: '#10b981',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#e5e7eb'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#e5e7eb'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Inicializar dashboard
+        function initDashboard() {
+            generateMetrics();
+            generateVendorsTable();
+            generateLines();
+            generateLineLegend();
+            createCharts();
+        }
+
+        // Ejecutar cuando la página esté cargada
+        window.addEventListener('load', initDashboard);
+    </script>
+</body>
+</html>
